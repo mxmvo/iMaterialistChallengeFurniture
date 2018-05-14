@@ -21,9 +21,9 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 # - get labels
 # - get the resized images
 # - Save the newly calculated features
-json_path = 'furniture.json'
-resized_image_dir = 'resized'
-feature_dir = 'features_csv'
+json_path = 'data/furniture_train.json'
+resized_image_dir = 'data/resized/train'
+feature_dir = 'data/test_features_csv'
 
 
 # Batch_size: amount of images to be processed at once.
