@@ -65,7 +65,7 @@ Module_256 is the module from tensorhub
 
 '''
 tf.reset_default_graph()
-module_256 = hub.Module('https://tfhub.dev/google/imagenet/mobilenet_v1_025_224/feature_vector/1')
+module_256 = hub.Module('https://tfhub.dev/google/imagenet/mobilenet_v1_050_224/feature_vector/1')
 images = tf.placeholder(shape=[None, 224,224,3], dtype=tf.float32, name='input')
 features = module_256(images)
 
