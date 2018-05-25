@@ -1,6 +1,12 @@
 maxim/*
 data/*
+
+# Do not track hidden files in the root dir. 
 .*
+!.gitignore
+
+# We don't want to add big data files
 *.zip
 *.pickle
-!.gitignore
+*.jpeg
+*.csv
