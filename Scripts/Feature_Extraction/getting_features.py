@@ -21,7 +21,7 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 # - get labels
 # - get the resized images
 # - Save the newly calculated features
-json_path = '../../Data/Json/furniture_train.json'
+json_path = '../../Data/Json/train.json'
 resized_image_dir = '../../Data/Images/224/Train/'
 feature_dir = '../../Data/Features/224/Test/'
 
