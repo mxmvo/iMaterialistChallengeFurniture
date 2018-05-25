@@ -2,6 +2,7 @@ import pickle
 from collections import Counter
 import os
 import tensorflow as tf
+import numpy as np
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -13,7 +14,7 @@ flags.DEFINE_string('base_dir',"/home/cooluser/competition/Data/Features", 'Base
 flags.DEFINE_string('data_dir','224','Directory for data')
 flags.DEFINE_string('model_file','resnet_v2_101.pickle','name of the file')
 flags.DEFINE_float('tol',0.0001,'Tolerance when to stop using early stopping')
-flags.DEFINE_integer('iter_check','500','How often to check the validation set (early stopping)')
+flags.DEFINE_integer('iter_check','5000','How often to check the validation set (early stopping)')
 
 def read_from_pickle(path):
     with open(path, 'rb') as file:
@@ -93,7 +94,7 @@ accuracy = tf.reduce_mean(predictions_correct)
 # The saver will be used to save model during the process.
 saver = tf.train.Saver()
 best_validation = 0
-
+previous_validation = 0
 __i = 1
 with tf.Session() as sess:
     # Initialize variables
@@ -114,16 +115,18 @@ with tf.Session() as sess:
             if((__i)%FLAGS.iter_check == 0):
                 current_validation = sess.run(accuracy, feed_dict={x: val_x, y: val_y})
 
+                
                 # If the score has increased we want to save the new model.
                 if(current_validation > best_validation):
                     print("\tbetter network stored,", current_validation, ">", best_validation)
                     saver.save(sess=sess, save_path='tmp/bestNetwork')
-                    
-                    # If the validation score hasn't increased enough we stop. Also called early stopping.
-                    if (current_validation - best_validation) < FLAGS.tol:
-                        break
-
                     best_validation = current_validation
+                    
+                # If the validation score hasn't increased (or it might have decreased)  enough we stop. Also called early stopping.
+                if np.abs(current_validation - previous_validation) < FLAGS.tol:
+                    break
+
+                previous_validation = current_validation
                     
 
         except tf.errors.OutOfRangeError:
