@@ -25,23 +25,30 @@ print(FLAGS.base_dir)
 print(FLAGS.data_dir)
 print(FLAGS.model_file)
 print(os.path.join(FLAGS.base_dir,FLAGS.data_dir,'Train',FLAGS.model_file))
+
+
+# getting the training data
 Data = list(read_from_pickle(os.path.join(FLAGS.base_dir,FLAGS.data_dir,'Train',FLAGS.model_file)))[0]
-print("Nrow: "+str(len(Data)))
-print("Ncol: "+str(len(Data[0,:])))
-
-
-train_x = Data[:,:-1][:,1:]
+# The first column is the id the last is the label
+train_x = Data[:,1:-1]
 train_y = Data[:,-1]
 
+# Getting the validation data
+Data = list(read_from_pickle(os.path.join(FLAGS.base_dir,FLAGS.data_dir,'Validation',FLAGS.model_file)))[0]
+
+val_x = Data[:,1:-1]
+val_y = Data[:,-1]
+
+# Getting the test data
 Data = list(read_from_pickle(os.path.join(FLAGS.base_dir,FLAGS.data_dir,'Test',FLAGS.model_file)))[0]
+test_x = Data[:,1:]
 
-test_x = data[:,:-1][:,1:]
-test_y = data[:,-1]
+Data = None
+del Data
 
-data = None
-del data
-
-
+print(train_x.shape)
+print(val_x.shape)
+print(test_x.shape)
 
 #Convert dataset to something tensorflow may use
 ds = tf.data.Dataset.from_tensor_slices((train_x, train_y))
@@ -57,7 +64,7 @@ ds_init_op = ds_iterator.make_initializer(ds)
 
 
 
-x = tf.placeholder(shape=[None, in_dim], dtype=tf.float32)
+x = tf.placeholder(shape=[None, train_x.shape[1]], dtype=tf.float32)
 y = tf.placeholder(shape=[None], dtype=tf.float32)
 
 # Declare model operations
@@ -76,9 +83,13 @@ loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=model_ou
 my_opt = tf.train.AdamOptimizer(FLAGS.lr)
 train_step = my_opt.minimize(loss)
 
-prediction = tf.round(tf.nn.softmax(model_output))
-predictions_correct = tf.cast(tf.equal(prediction, onehot_label), tf.float32)
+prediction = tf.cast(tf.argmax(tf.nn.softmax(model_output),axis= 1),tf.float32)
+predictions_correct = tf.cast(tf.equal(prediction, y), tf.float32)
 accuracy = tf.reduce_mean(predictions_correct)
+
+
+saver = tf.train.Saver()
+best_validation = 0
 __i = 1
 print("\rRunning: "+str(__i))
 with tf.Session() as sess:
@@ -93,10 +104,17 @@ with tf.Session() as sess:
         try:
             __i = __i + 1
             print("\rRunning: "+str(__i),end='')
-            x_train, y_train = sess.run(ds_next_element)
-            sess.run(train_step, feed_dict={x: x_train, y: y_train})
+            batch_x, batch_y = sess.run(ds_next_element)
+            sess.run(train_step, feed_dict={x: batch_x, y: batch_y})
+            
+            # Early stopping
+            if((__i)%100==0):
+                current_validation = sess.run(accuracy, feed_dict={x: val_x, y: val_y})
+                if(current_validation > best_validation):
+                    print("\tbetter network stored,", current_validation, ">", best_validation)
+                    best_validation = current_validation
+                    saver.save(sess=sess, save_path='tmp/bestNetwork')
+
         except tf.errors.OutOfRangeError:
             break
 
-    acc_test = sess.run(accuracy, feed_dict={x: test_x, y: test_y})
-    print("Test acc. =", acc_test)
