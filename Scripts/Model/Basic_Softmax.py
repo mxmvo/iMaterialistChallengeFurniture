@@ -67,6 +67,7 @@ y = tf.placeholder(shape=[None], dtype=tf.float32)
 
 model_output = tf.layers.dense(x, 128, use_bias=True, activation=None)
 
+
 #takes the mean over all entries. 
 #
 onehot_label = tf.one_hot(indices = tf.cast(y,tf.int32),depth=128)
