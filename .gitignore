@@ -10,3 +10,4 @@ data/*
 *.pickle
 *.jpeg
 *.csv
+Scripts/Model/tmp/*
