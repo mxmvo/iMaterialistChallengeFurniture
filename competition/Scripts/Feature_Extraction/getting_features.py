@@ -21,9 +21,9 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 # - get labels
 # - get the resized images
 # - Save the newly calculated features
-json_path = 'data/furniture_train.json'
-resized_image_dir = 'data/resized/train'
-feature_dir = 'data/test_features_csv'
+json_path = '../../Data/Json/furniture_train.json'
+resized_image_dir = '../../Data/Images/224/Train/'
+feature_dir = '../../Data/Features/224/Test/'
 
 
 # Batch_size: amount of images to be processed at once.
@@ -65,9 +65,9 @@ Module_256 is the module from tensorhub
 
 '''
 tf.reset_default_graph()
-module_256 = hub.Module('https://tfhub.dev/google/imagenet/mobilenet_v1_050_224/feature_vector/1')
+module = hub.Module('https://tfhub.dev/google/imagenet/mobilenet_v1_050_224/feature_vector/1')
 images = tf.placeholder(shape=[None, 224,224,3], dtype=tf.float32, name='input')
-features = module_256(images)
+features = module(images)
 
 init_op = tf.global_variables_initializer()
 

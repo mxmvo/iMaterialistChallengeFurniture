@@ -1,0 +1,6 @@
+maxim/*
+data/*
+.*
+*.zip
+*.pickle
+!.gitignore
