@@ -44,7 +44,7 @@ del data
 
 
 #Convert dataset to something tensorflow may use
-ds = tf.data.Dataset.from_tensor_slices((train_x, train_x))
+ds = tf.data.Dataset.from_tensor_slices((train_x, train_y))
 ds = ds.apply(tf.contrib.data.shuffle_and_repeat(10*FLAGS.batch_size, count=FLAGS.epochs))
 ds = ds.batch(FLAGS.batch_size)
 ds = ds.prefetch(FLAGS.prefetch)
@@ -66,7 +66,6 @@ y = tf.placeholder(shape=[None], dtype=tf.float32)
 #This removes the redundant dimension
 
 model_output = tf.layers.dense(x, 128, use_bias=True, activation=None)
-
 
 #takes the mean over all entries. 
 #
@@ -95,7 +94,7 @@ with tf.Session() as sess:
             __i = __i + 1
             print("\rRunning: "+str(__i),end='')
             x_train, y_train = sess.run(ds_next_element)
-            sess.run(train_step, feed_dict={x: train_x, y: train_y})
+            sess.run(train_step, feed_dict={x: x_train, y: y_train})
         except tf.errors.OutOfRangeError:
             break
 
