@@ -79,18 +79,17 @@ max_iter = len(file_list)//batch_size +1
 '''
 Make the graph that basically only holds the module
 Note in the graph the module works on a placeholder
-  Since we do not know howmany images we will process at a time,
-  we set the first parameter in the shape to be None
-  This placeholder will later on be filled with images
-
-
-Module_256 is the module from tensorhub
-  This will spit out a 256 feature vector called the features
-
+Since we do not know howmany images we will process at a time,
+we set the first parameter in the shape to be None
+This placeholder will later on be filled with images
 '''
 tf.reset_default_graph()
+
+
+
 module = hub.Module(module_url)
 images = tf.placeholder(shape=[None, 224,224,3], dtype=tf.float32, name='input')
+
 features = module(images)
 
 init_op = tf.global_variables_initializer()
