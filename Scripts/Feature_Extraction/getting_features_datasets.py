@@ -76,6 +76,9 @@ if not_test_bool:
 # Check how many iterations we will do. 
 max_iter = len(file_list)//batch_size +1
 
+
+# pre_data = [[file_id[i],file_list[i],label_list[i]] for i in range(len(file_id))]
+
 '''
 Make the graph that basically only holds the module
 Note in the graph the module works on a placeholder
@@ -83,8 +86,35 @@ Since we do not know howmany images we will process at a time,
 we set the first parameter in the shape to be None
 This placeholder will later on be filled with images
 '''
+
+
+
 tf.reset_default_graph()
 
+def _parse_image(file_id, filename, label_list):
+    img_file = tf.read_file(filename)
+    img_decode = tf.image.decode_image(img_file)
+    
+    # Here something to change the images.
+    # Randomly? I was thinking about 
+    # tf.contrib.images.rotate
+    # tf.image.flip_right_left
+
+    return file_id, img_decode, label_list
+
+# So here we want to insert the images.
+
+with tf.name_scope('training_data') as scope:
+    ds = tf.data.Dataset.from_tensor_slices((file_id, file_list, label_list))
+    ds = ds.map(_parse_image)
+
+    ds = ds.batch(batch_size)
+    ds = ds.prefetch(1)
+
+    ds_iterator = tf.data.Iterator.from_structure(ds.output_types, ds.output_shapes)
+    ds_next_element = ds_iterator.get_next()
+    ds_init_op = ds_iterator.make_initializer(ds)
+    
 
 
 module = hub.Module(module_url)
@@ -103,23 +133,21 @@ with tf.Session() as sess:
   # Finalize graph so that we not accidentely extend it. 
   sess.graph.finalize()
 
+
+  sess.run(ds_init_op) 
+
   for j in range(max_iter):
     start = time.time()
     print('-'*50)
     print('Running iteration: {} of {}'.format(j, max_iter))
     
     # Get the image_names, labels and ids for this iteration
-    end = min(len(file_list),(j+1)*batch_size)
-    files = file_list[j*batch_size:end]
-    if not_test_bool:
-      labels = label_list[j*batch_size:end]
+
     
-    ids = file_id[j*batch_size:end]
-    
-    # Make a numpy array of all the data.
-    imgs = np.array([imread(f) for f in files])
+    ids, imgs, labels = sess.run(ds_next_element)    
     
     # Put the images in the grapg get the feature back
+
     print('Getting features:', end = '')
     feat= sess.run(features, feed_dict={images:imgs})
   
