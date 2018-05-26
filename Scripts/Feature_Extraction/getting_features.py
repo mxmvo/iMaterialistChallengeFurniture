@@ -77,7 +77,7 @@ if not_test_bool:
 max_iter = len(file_list)//batch_size +1
 
 
-pre_data = zip(file_id, file_list,label_list)
+# pre_data = [[file_id[i],file_list[i],label_list[i]] for i in range(len(file_id))]
 
 '''
 Make the graph that basically only holds the module
@@ -91,24 +91,23 @@ This placeholder will later on be filled with images
 
 tf.reset_default_graph()
 
-def _parse_image(filename):
+def _parse_image(file_id, filename, label_list):
     img_file = tf.read_file(filename)
     img_decode = tf.image.decode_image(img_file)
     
-    #img_label = table.lookup(filename)
     # Here something to change the images.
+    # Randomly? I was thinking about 
+    # tf.contrib.images.rotate
+    # tf.image.flip_right_left
 
-    return img_decode#, img_label
+    return file_id, img_decode, label_list
 
 # So here we want to insert the images.
 
 with tf.name_scope('training_data') as scope:
-    ds = tf.data.Dataset.from_tensor_slices(file_list)
+    ds = tf.data.Dataset.from_tensor_slices((file_id, file_list, label_list))
     ds = ds.map(_parse_image)
 
-    #ds_id = tf.data.Dataset.from_tensor_slices((file_id,label_list))
-
-    #ds = tf.data.Dataset.zip((ds_id,ds_img))
     ds = ds.batch(batch_size)
     ds = ds.prefetch(1)
 
@@ -142,16 +141,12 @@ with tf.Session() as sess:
     print('Running iteration: {} of {}'.format(j, max_iter))
     
     # Get the image_names, labels and ids for this iteration
-    end = min(len(file_list),(j+1)*batch_size)
-    files = file_list[j*batch_size:end]
-    if not_test_bool:
-      labels = label_list[j*batch_size:end]
-    ids = file_id[j*batch_size:end]
-    _ = sess.run(ds_next_element)    
-    print(1)    
-    # Make a numpy array of all the data.
-    imgs = np.array([imread(f) for f in files])
+
+    
+    ids, imgs, labels = sess.run(ds_next_element)    
+    
     # Put the images in the grapg get the feature back
+
     print('Getting features:', end = '')
     feat= sess.run(features, feed_dict={images:imgs})
   
