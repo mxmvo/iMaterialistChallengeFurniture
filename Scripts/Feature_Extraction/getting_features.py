@@ -76,19 +76,48 @@ if not_test_bool:
 # Check how many iterations we will do. 
 max_iter = len(file_list)//batch_size +1
 
+
+pre_data = zip(file_id, file_list,label_list)
+
 '''
 Make the graph that basically only holds the module
 Note in the graph the module works on a placeholder
-  Since we do not know howmany images we will process at a time,
-  we set the first parameter in the shape to be None
-  This placeholder will later on be filled with images
-
-
-Module_256 is the module from tensorhub
-  This will spit out a 256 feature vector called the features
-
+Since we do not know howmany images we will process at a time,
+we set the first parameter in the shape to be None
+This placeholder will later on be filled with images
 '''
+
+
+
 tf.reset_default_graph()
+
+def _parse_image(filename):
+    img_file = tf.read_file(filename)
+    img_decode = tf.image.decode_image(img_file)
+    
+    #img_label = table.lookup(filename)
+    # Here something to change the images.
+
+    return img_decode#, img_label
+
+# So here we want to insert the images.
+
+with tf.name_scope('training_data') as scope:
+    ds = tf.data.Dataset.from_tensor_slices(file_list)
+    ds = ds.map(_parse_image)
+
+    #ds_id = tf.data.Dataset.from_tensor_slices((file_id,label_list))
+
+    #ds = tf.data.Dataset.zip((ds_id,ds_img))
+    ds = ds.batch(batch_size)
+    ds = ds.prefetch(1)
+
+    ds_iterator = tf.data.Iterator.from_structure(ds.output_types, ds.output_shapes)
+    ds_next_element = ds_iterator.get_next()
+    ds_init_op = ds_iterator.make_initializer(ds)
+    
+
+
 module = hub.Module(module_url)
 images = tf.placeholder(shape=[None, 224,224,3], dtype=tf.float32, name='input')
 features = module(images)
@@ -104,6 +133,9 @@ with tf.Session() as sess:
   # Finalize graph so that we not accidentely extend it. 
   sess.graph.finalize()
 
+
+  sess.run(ds_init_op) 
+
   for j in range(max_iter):
     start = time.time()
     print('-'*50)
@@ -114,12 +146,11 @@ with tf.Session() as sess:
     files = file_list[j*batch_size:end]
     if not_test_bool:
       labels = label_list[j*batch_size:end]
-    
     ids = file_id[j*batch_size:end]
-    
+    _ = sess.run(ds_next_element)    
+    print(1)    
     # Make a numpy array of all the data.
     imgs = np.array([imread(f) for f in files])
-    
     # Put the images in the grapg get the feature back
     print('Getting features:', end = '')
     feat= sess.run(features, feed_dict={images:imgs})
