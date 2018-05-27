@@ -156,12 +156,13 @@ with tf.Session() as sess:
 	
     sess.graph.finalize()  # graph is read-only after this statement
     writer = tf.summary.FileWriter(FLAGS.summary_dir, sess.graph)
+    print(isfile(FLAGS.summary_dir +'/bestNetwork/model.ckpt*'))
     if isfile(FLAGS.summary_dir + '/bestNetwork/model.ckpt*'):
         try:
-		    saver.restore(sess,FLAGS.summary_dir + '/bestNetwork/model.ckpt')
-            print('Restored previous session')'
-		except:
-		    pass
+            saver.restore(sess,FLAGS.summary_dir + '/bestNetwork/model.ckpt')
+            print('Restored previous session')
+        except:
+            pass
 	
     sess.run(ds_init_op)
     #Iterate over the data
