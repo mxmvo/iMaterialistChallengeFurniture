@@ -28,15 +28,10 @@ def read_from_pickle(path):
             pass
 
 #Import the data from the training set			
-#print(FLAGS.base_dir)
-#print(FLAGS.data_dir)
-#print(FLAGS.model_file)
 Data = []
 # Getting the training data
 Data = list(read_from_pickle(os.path.join(FLAGS.base_dir,FLAGS.data_dir,'Train',FLAGS.model_file)))[0]
 # The first column is the id the last is the label
-print(len(Data[0]))
-print(len(Data))
 
 Data_Convert = np.array(Data[0])
 
@@ -69,10 +64,6 @@ val_y = Data[:,-1]
 Data = None
 del Data
 
-#print(train_x.shape)
-#print(val_x.shape)
-#print(test_x.shape)
-print("Hej")
 #Convert dataset to something tensorflow may use
 ds = tf.data.Dataset.from_tensor_slices((train_x, train_y))
 ds = ds.apply(tf.contrib.data.shuffle_and_repeat(10*FLAGS.batch_size, count=FLAGS.epochs))
@@ -113,7 +104,7 @@ multinomial_3 = tf.layers.dense(relu_1,528,use_bias=True,name='nn_multinomial_sk
 relu_2 = tf.layers.dense(relu_1,1028,use_bias=True,activation=tf.nn.relu,name='nn_relu_layer_2')
 relu_3 = tf.layers.dense(relu_2,528,use_bias=True,activation=tf.nn.relu,name='nn_relu_layer_3')
 relu_4 = tf.layers.dense(relu_3,128,use_bias=True,activation=tf.nn.relu,name='nn_relu_layer_4')
-#relu_4 = tf.layers.dense(tf.concat([relu_3,multinomial_3],axis=1),128,use_bias=True,activation=tf.nn.relu,name='nn_relu_layer_4_mix')
+#relu_4_mix = tf.layers.dense(tf.concat([relu_3,multinomial_3],axis=1),128,use_bias=True,activation=tf.nn.relu,name='nn_relu_layer_4_mix')
 
 
 mixing_1 = tf.layers.dense(tf.concat([softplus_1,relu_1],axis=1),1028,use_bias=True,activation=tf.sigmoid,name='nn_mixing_layer_1')
@@ -155,32 +146,41 @@ with tf.Session() as sess:
     sess.run(init)
 	
     sess.graph.finalize()  # graph is read-only after this statement
+    #print("I got here - -1")
     writer = tf.summary.FileWriter(FLAGS.summary_dir, sess.graph)
-    print(isfile(FLAGS.summary_dir +'/bestNetwork/model.ckpt*'))
-    if isfile(FLAGS.summary_dir + '/bestNetwork/model.ckpt*'):
+    #print("I got here - 0")	
+    if not (os.listdir(FLAGS.summary_dir +'/bestNetwork/')==[]):
         try:
             saver.restore(sess,FLAGS.summary_dir + '/bestNetwork/model.ckpt')
             print('Restored previous session')
         except:
+            print("I failed import")
             pass
 	
     sess.run(ds_init_op)
     #Iterate over the data
     while True:
         try:
+            #print("i got here - 1")
             __i = __i + 1
             print("\rRunning: "+str(__i)+", epoch: "+str(1+__i//(__n_length[0]/FLAGS.batch_size))+" of "+str(FLAGS.epochs)+".",end='')
             batch_x, batch_y = sess.run(ds_next_element)
+            #print("I got here - 2")
             sess.run(train_step, feed_dict={x: batch_x, y: batch_y})
+            #print("I got here - 3")
             summary = sess.run(merged, feed_dict={x: batch_x, y: batch_y})
+            #print("I got here - 4")
             train_writer.add_summary(summary,__i)
-            # Early stopping
+            #print("I got here - 5")            
+			# Early stopping
             # We check every fixed period of time if the validation score has increased
             
             if((__i)%FLAGS.iter_check == 0):
+                #print("I got here - 7")
                 current_validation = sess.run(accuracy, feed_dict={x: val_x, y: val_y})
-
+                #print("I got here - 8")
                 summary = sess.run(merged, feed_dict={x: val_x, y: val_y})
+                #print("I got here - 9")
                 validate_writer.add_summary(summary,i)
                 # If the score has increased we want to save the new model.
                 if(current_validation > best_validation):
@@ -194,9 +194,19 @@ with tf.Session() as sess:
                     break
 
                 previous_validation = current_validation
-                    
+            #print("I got here - 6")
 
         except tf.errors.OutOfRangeError:
             print("I broke")
             break
-
+        except Exception as inst:
+            print(type(inst))     # the exception instance
+            print(inst.args)      # arguments stored in .args
+            print(inst)           # __str__ allows args to be printed directly
+            _x, _y  = inst.args
+            print('x =', _x)
+            print('y =', _y)
+            break
+        except:
+            print("I dont know what happened")
+            break
