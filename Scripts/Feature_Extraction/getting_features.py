@@ -121,7 +121,7 @@ with tf.Session() as sess:
     imgs = np.array([imread(f) for f in files])
     
     # Put the images in the grapg get the feature back
-    print('Getting features:', end = '')
+    print('Getting features:')
     feat= sess.run(features, feed_dict={images:imgs})
   
     # For bookkeeping put the ids and the labels also with the data.
@@ -135,6 +135,7 @@ with tf.Session() as sess:
     print('{:.2f} seconds'.format(iter_time))
     
     # Update pickle file
+    '''
     if os.path.exists(pickle_file):
         with open(pickle_file,'rb') as rfp: 
             results = pickle.load(rfp)
@@ -142,8 +143,9 @@ with tf.Session() as sess:
         results = []
 
     results.append(data)
-
-    with open(pickle_file,'wb') as wfp:
-        pickle.dump(results, wfp)
+    '''
+    
+    with open(pickle_file+str(j),'wb') as wfp:
+        pickle.dump(data, wfp)
 
     print('Estimated time left: {:.2f} seconds'.format( (len(file_list)-batch_size*(j+1))*sum(times)/(batch_size*(j+1)) ) )

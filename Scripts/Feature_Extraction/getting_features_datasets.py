@@ -31,7 +31,7 @@ flags.DEFINE_string('model', 'default', 'Which model to use')
 flags.DEFINE_integer('batch_size',100,'What batch size to use')
 flags.DEFINE_integer('parallel',4,'Number of parallel batches')
 flags.DEFINE_integer('prefetch',2,'How many batches should be prefetched')
-
+flags.DEFINE_boolean('rotation',True,'Should the images be rotated')
 #json_path = '../../Data/Json/train.json'
 #resized_image_dir = '../../Data/Images/224/Train/'
 #feature_dir = '../../Data/Features/224/Train/'
@@ -44,7 +44,7 @@ module_url = FLAGS.model
 
 batch_size = FLAGS.batch_size
 
-pickle_file = module_url.split('/')[5]+'.pickle'
+pickle_file = module_url.split('/')[5]+"_datasets"+'.pickle'
 
 pickle_file = os.path.join(feature_dir,pickle_file)
 
@@ -66,7 +66,7 @@ print(len(file_list))
 
 # Make and file_id list and label_list (Note in the same order as the file_list ;)) 
 def get_label(i):
-  res =  int(re.findall(r'\\([0-9]*)\.jpeg',i)[0] )
+  res =  int(re.findall(r'/([0-9]*)\.jpeg',i)[0] )
   return res
 
 file_id = [get_label(i) for i in file_list]
@@ -100,9 +100,10 @@ datagen = tf.keras.preprocessing.image.ImageDataGenerator(
 def _parse_image(file_id, filename, label_list):
     img_file = tf.read_file(filename,'image_reader')
     img_decode = tf.image.decode_image(img_file,name='image_decoder')
-    img_decode = tf.image.random_flip_left_right(img_decode)
-    uniform_draw = tf.random_uniform([1],-pi*30/360,pi*30/360,name='Random_Draw_uniform')
-    img_decode = tf.contrib.image.rotate(img_decode,uniform_draw,name='random_rotation')
+    if FLAGS.rotation:
+        img_decode = tf.image.random_flip_left_right(img_decode)
+        uniform_draw = tf.random_uniform([1],-pi*30/360,pi*30/360,name='Random_Draw_uniform')
+        img_decode = tf.contrib.image.rotate(img_decode,uniform_draw,name='random_rotation')
 	
     # Here something to change the images.
     # Randomly? I was thinking about 
@@ -115,10 +116,10 @@ def _parse_image(file_id, filename, label_list):
 
 with tf.name_scope('training_data') as scope:
     ds = tf.data.Dataset.from_tensor_slices((file_id, file_list, label_list))
-    #ds = ds.map_and_batch(map_func=_parse_image,batch_size=FLAGS.batch_size,num_parallel_batches=FLAGS.parallel)
-    ds = ds.map(_parse_image)
+    ds = ds.apply(tf.contrib.data.map_and_batch(map_func=_parse_image,batch_size=FLAGS.batch_size,num_parallel_batches=FLAGS.parallel))
+    #ds = ds.map(_parse_image)
 
-    ds = ds.batch(batch_size)
+    #ds = ds.batch(batch_size)
     ds = ds.prefetch(FLAGS.prefetch)
 
     ds_iterator = tf.data.Iterator.from_structure(ds.output_types, ds.output_shapes)
@@ -148,7 +149,7 @@ with tf.Session() as sess:
   for j in range(max_iter):
     start = time.time()
     print('-'*50)
-    print('Running iteration: {} of {}'.format(j, max_iter))
+    print('Running iteration: {} of {}'.format(j+1, max_iter))
     
     # Get the image_names, labels and ids for this iteration
 
@@ -157,7 +158,7 @@ with tf.Session() as sess:
     
     # Put the images in the grapg get the feature back
 
-    print('Getting features:', end = '')
+    print('Getting features:')
     feat= sess.run(features, feed_dict={images:imgs}) 
     # For bookkeeping put the ids and the labels also with the data.
     if not_test_bool:
@@ -171,14 +172,17 @@ with tf.Session() as sess:
     
     # Update pickle file
     if os.path.exists(pickle_file):
-        with open(pickle_file,'rb') as rfp: 
+        print(pickle_file)
+        with open(pickle_file++str(j),'rb') as rfp: 
             results = pickle.load(rfp)
     else:
         results = []
-
+    
     results.append(data)
+   # print(pickle_file)
 
-    with open(pickle_file,'wb') as wfp:
+    with open(pickle_file+str(j),'wb+') as wfp:
         pickle.dump(results, wfp)
 
-    print('Estimated time left: {:.2f} seconds'.format( (len(file_list)-batch_size*(j+1))*sum(times)/(batch_size*(j+1)) ) )
+    print(time.time()-start)
+    print('Estimated time left: {:.2f} seconds'.format( (len(file_list)-batch_size*(1+j))*sum(times)/(batch_size*(j+1)) ) )
